@@ -1,4 +1,6 @@
-﻿namespace Week_2_ADAT_Lab
+﻿using Week_2_ADAT_Lab.Models;
+
+namespace Week_2_ADAT_Lab
 {
     internal class Program
     {
@@ -8,7 +10,7 @@
                 "Server=(localDB)\\MSSQLLocalDB;Database=IT410Week2Demo;" +
                 "Trusted_Connection=True;TrustServerCertificate=True;";
 
-            ADOTests(connectionString);
+            //ADOTests(connectionString);
         }
 
         static void ADOTests(string connectionString)
