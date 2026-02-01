@@ -11,7 +11,19 @@ namespace Week_2_ADAT_Lab
                 "Trusted_Connection=True;TrustServerCertificate=True;";
 
             //ADOTests(connectionString);
+
+            List<Order> orders = new List<Order>();
+
+            OrderRepository orderRepo = new OrderRepository(connectionString);
+
+            orders = orderRepo.GetAllOrders();
+
+            foreach (Order o in orders)
+                o.PrintOrderItems();
+
+
         }
+        
 
         static void ADOTests(string connectionString)
         {
@@ -23,8 +35,6 @@ namespace Week_2_ADAT_Lab
                 Console.WriteLine($"{c.FirstName} {c.LastName}");
 
             Console.WriteLine("\n[Testing getting valid ID (1)]\n");
-
-
 
             Customer? customer = repo.GetById(1);
 
@@ -49,6 +59,48 @@ namespace Week_2_ADAT_Lab
             {
                 Console.WriteLine($" Error: Customer found: ID: {customer.CustomerId} {customer.FirstName} {customer.LastName}");
             }
+        }
+
+        static void OrderRepoTests(string connectionString)
+        {
+            OrderRepository repo = new OrderRepository(connectionString);
+
+            var orders = repo.GetAllOrders();
+
+            if (orders.Count == 0)
+            {
+                Console.WriteLine("No orders found.");
+                return;
+            }
+
+            var order = orders.FirstOrDefault(o => o.OrderItems.Count > 0);
+
+            if (order == null)
+            {
+                Console.WriteLine("No orders with items to test.");
+                return;
+            }
+
+            var orderItem = order.OrderItems.First();
+
+            Console.WriteLine("BEFORE:");
+            Console.WriteLine($"Order Status: {order.OrderStatus}");
+            order.PrintOrderItems();
+
+            order.OrderStatus = "Cancelled";
+
+            repo.UpdateOrderAndDeleteItem(order, orderItem.OrderItemId);
+
+            var updatedOrder = repo
+                .GetAllOrders()
+                .First(o => o.OrderId == order.OrderId);
+
+            Console.WriteLine("AFTER:");
+            Console.WriteLine($"Order Status: {updatedOrder.OrderStatus}");
+            updatedOrder.PrintOrderItems();
+
+            Console.WriteLine("Test complete.");
+
         }
     }
 }
