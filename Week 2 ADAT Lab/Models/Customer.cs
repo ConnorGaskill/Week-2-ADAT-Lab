@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Week_2_ADAT_Lab
+namespace Week_2_ADAT_Lab.Models
 {
     public class Customer
     {

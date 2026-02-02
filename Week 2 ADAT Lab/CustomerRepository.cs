@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Week_2_ADAT_Lab.Models;
 
 namespace Week_2_ADAT_Lab
 {
