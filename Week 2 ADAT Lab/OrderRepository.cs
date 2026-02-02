@@ -151,6 +151,91 @@ namespace Week_2_ADAT_Lab
             return orders;
         }
 
+        public Order GetOrder(int orderId)
+        {
+            Order order = null;
+
+            string sql = @"
+        SELECT
+            o.OrderId,
+            o.CustomerId,
+            o.OrderDate,
+            o.OrderStatus,
+
+            oi.OrderItemId,
+            oi.ProductId,
+            oi.Quantity,
+            oi.UnitPrice,
+
+            p.ProductName,
+            p.UnitPrice AS ProductUnitPrice,
+            p.IsActive AS ProductIsActive,
+
+            c.CategoryId,
+            c.CategoryName,
+            c.IsActive AS CategoryIsActive
+        FROM dbo.Orders o
+        LEFT JOIN dbo.OrderItems oi ON o.OrderId = oi.OrderId
+        LEFT JOIN dbo.Products p ON oi.ProductId = p.ProductId
+        LEFT JOIN dbo.Categories c ON p.CategoryId = c.CategoryId
+        WHERE o.OrderId = @OrderId
+        ORDER BY oi.OrderItemId;
+    ";
+
+            using SqlConnection conn = new SqlConnection(_connectionString);
+            using SqlCommand cmd = new SqlCommand(sql, conn);
+
+            cmd.Parameters.Add("@OrderId", SqlDbType.Int).Value = orderId;
+
+            conn.Open();
+            using SqlDataReader reader = cmd.ExecuteReader();
+            {
+                while (reader.Read())
+                {
+                    if (order == null)
+                    {
+                        order = new Order
+                        {
+                            OrderId = reader.GetInt32(reader.GetOrdinal("OrderId")),
+                            CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                            OrderDate = reader.GetDateTime(reader.GetOrdinal("OrderDate")),
+                            OrderStatus = reader.GetString(reader.GetOrdinal("OrderStatus")),
+                            OrderItems = new List<OrderItem>()
+                        };
+                    }
+
+                    if (!reader.IsDBNull(reader.GetOrdinal("OrderItemId")))
+                    {
+                        var item = new OrderItem
+                        {
+                            OrderItemId = reader.GetInt32(reader.GetOrdinal("OrderItemId")),
+                            OrderId = orderId,
+                            Quantity = reader.GetInt32(reader.GetOrdinal("Quantity")),
+                            UnitPrice = reader.GetDecimal(reader.GetOrdinal("UnitPrice")),
+                            Product = new Product
+                            {
+                                ProductId = reader.GetInt32(reader.GetOrdinal("ProductId")),
+                                ProductName = reader.GetString(reader.GetOrdinal("ProductName")),
+                                UnitPrice = reader.GetDecimal(reader.GetOrdinal("ProductUnitPrice")),
+                                IsActive = reader.GetBoolean(reader.GetOrdinal("ProductIsActive")),
+                                Category = new Category
+                                {
+                                    CategoryId = reader.GetInt32(reader.GetOrdinal("CategoryId")),
+                                    CategoryName = reader.GetString(reader.GetOrdinal("CategoryName")),
+                                    IsActive = reader.GetBoolean(reader.GetOrdinal("CategoryIsActive"))
+                                }
+                            }
+                        };
+
+                        order.OrderItems.Add(item);
+                    }
+                }
+            }
+
+            return order;
+        }
+
+
         public bool UpdateOrder(Order order)
         {
             using SqlConnection conn = new SqlConnection(_connectionString);
@@ -159,7 +244,7 @@ namespace Week_2_ADAT_Lab
                   SET CustomerId = @CustomerId,
                       OrderDate = @OrderDate,
                       OrderStatus = @OrderStatus
-                  WHERE OrderId = @OrderId;", conn);
+                WHERE OrderId = @OrderId;", conn);
 
             cmd.Parameters.Add("@CustomerId", SqlDbType.Int).Value = order.CustomerId;
             cmd.Parameters.Add("@OrderDate", SqlDbType.DateTime2).Value = order.OrderDate;
@@ -182,7 +267,21 @@ namespace Week_2_ADAT_Lab
             return cmd.ExecuteNonQuery() == 1;
         }
 
-        public void UpdateOrderAndDeleteItem(Order order, int orderItemId)
+        public bool DeleteOrder(int orderId)
+        {
+            using SqlConnection conn = new SqlConnection(_connectionString);
+            using SqlCommand cmd = new SqlCommand(
+                @"DELETE FROM dbo.Orders
+            WHERE OrderId = @OrderId;", conn);
+
+            cmd.Parameters.Add("@OrderId", SqlDbType.Int).Value = orderId;
+
+            conn.Open();
+            return cmd.ExecuteNonQuery() == 1;
+        }
+
+
+        public bool UpdateOrderAndDeleteItem(Order order, int orderItemId)
         {
             using SqlConnection conn = new SqlConnection(_connectionString);
             conn.Open();
@@ -192,27 +291,48 @@ namespace Week_2_ADAT_Lab
             {
                 using SqlCommand updateOrderCmd = new SqlCommand(
                     @"UPDATE dbo.Orders
-                      SET OrderStatus = @Status
-                      WHERE OrderId = @OrderId;", conn, tx);
+                    SET OrderStatus = @Status
+                WHERE OrderId = @OrderId;", conn, tx);
 
                 updateOrderCmd.Parameters.Add("@Status", SqlDbType.NVarChar, 20).Value = order.OrderStatus;
                 updateOrderCmd.Parameters.Add("@OrderId", SqlDbType.Int).Value = order.OrderId;
-                updateOrderCmd.ExecuteNonQuery();
+
+                int orderRows = updateOrderCmd.ExecuteNonQuery();
+
+                if (orderRows != 1)
+                    throw new InvalidOperationException("Order not found.");
 
                 using SqlCommand deleteItemCmd = new SqlCommand(
                     @"DELETE FROM dbo.OrderItems
-                      WHERE OrderItemId = @OrderItemId;", conn, tx);
+                WHERE OrderItemId = @OrderItemId;", conn, tx);
 
                 deleteItemCmd.Parameters.Add("@OrderItemId", SqlDbType.Int).Value = orderItemId;
-                deleteItemCmd.ExecuteNonQuery();
+
+                int itemRows = deleteItemCmd.ExecuteNonQuery();
+
+                if (itemRows != 1)
+                    throw new InvalidOperationException("Order item not found.");
 
                 tx.Commit();
+                return true;
             }
             catch
             {
                 tx.Rollback();
-                throw;
+                return false;
             }
+        }
+
+
+        public void RestoreSampleOrder()
+        {
+            using SqlConnection conn = new SqlConnection(_connectionString);
+            using SqlCommand cmd = new SqlCommand("RestoreSampleOrder", conn);
+
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            conn.Open();
+            cmd.ExecuteNonQuery();
         }
     }
 }
