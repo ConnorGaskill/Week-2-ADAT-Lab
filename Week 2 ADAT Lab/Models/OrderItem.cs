@@ -10,8 +10,9 @@ namespace Week_2_ADAT_Lab.Models
     {
         public int OrderItemId {  get; set; }
         public int OrderId { get; set; }
-        public int ProductId { get; set; }
+        public Product Product { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice {  get; set; }
+        public decimal Total => Quantity * UnitPrice;
     }
 }
