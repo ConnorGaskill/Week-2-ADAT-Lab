@@ -4,7 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using Week_2_ADAT_Lab.Models;
 
-namespace Week_2_ADAT_Lab
+namespace Week_2_ADAT_Lab.Repositories
 {
     public class OrderRepository
     {

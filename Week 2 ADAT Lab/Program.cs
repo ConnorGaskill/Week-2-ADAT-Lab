@@ -1,5 +1,7 @@
 ﻿using System.Reflection.Metadata.Ecma335;
 using Week_2_ADAT_Lab.Models;
+using Week_2_ADAT_Lab.Repositories;
+using Week_2_ADAT_Lab.Utilities;
 
 namespace Week_2_ADAT_Lab
 {
@@ -27,14 +29,15 @@ namespace Week_2_ADAT_Lab
 
             //TestUpdate(connectionString, false);
 
-            Console.WriteLine("Testing Successful Delete operation...");
+            //Console.WriteLine("Testing Successful Delete operation...");
 
-            TestDeleteOrderItem(connectionString, true);
+            //TestDeleteOrderItem(connectionString, true);
 
-            Console.WriteLine("Testing Unsuccessful Delete operation...");
+            //Console.WriteLine("Testing Unsuccessful Delete operation...");
 
-            TestDeleteOrderItem(connectionString, false);
+            //TestDeleteOrderItem(connectionString, false);
 
+            TestRepositoryEfficiency(connectionString);
 
 
         }
@@ -257,6 +260,54 @@ namespace Week_2_ADAT_Lab
 
             repo.RestoreSampleOrder();
 
+        }
+
+        static void TestRepositoryEfficiency(string connectionString)
+        {
+
+            // Inefficient
+            var slowRepo = new CatalogRepositoryInefficient(connectionString);
+            List<Models.Category> slowCatalog = null;
+
+            TimeSpan slowTime = TimeUtilities.RunWithStopwatch(() =>
+            {
+                slowCatalog = slowRepo.GetCatalog();
+            });
+
+            int slowCategoryCount = slowCatalog.Count;
+            int slowSubCategoryCount = slowCatalog
+                .Sum(c => c.SubCategories.Count);
+
+            int slowCommandCount = 1 + slowCategoryCount + slowSubCategoryCount;
+
+            //Efficient
+            var fastRepo = new CatalogRepositoryEfficient(connectionString);
+            List<Models.Category> fastCatalog = null;
+
+            TimeSpan fastTime = TimeUtilities.RunWithStopwatch(() =>
+            {
+                fastCatalog = fastRepo.GetCatalog();
+            });
+
+            int fastCommandCount = 1;
+
+            // ---------- Output ----------
+            Console.WriteLine("--- CATALOG PERFORMANCE TEST ---");
+
+            Console.WriteLine("Command Count:");
+            Console.WriteLine($"  Inefficient Version: {slowCommandCount}");
+            Console.WriteLine($"  Efficient Version:   {fastCommandCount}\n");
+
+            Console.WriteLine("Execution Time:");
+            Console.WriteLine($"  Inefficient Version: {slowTime}");
+            Console.WriteLine($"  Efficient Version:   {fastTime}\n");
+
+            Console.WriteLine(
+                TimeUtilities.GetFastest(
+                    new KeyValuePair<string, TimeSpan>("Inefficient", slowTime),
+                    new KeyValuePair<string, TimeSpan>("Efficient", fastTime)
+                )
+            );
         }
     }
 }

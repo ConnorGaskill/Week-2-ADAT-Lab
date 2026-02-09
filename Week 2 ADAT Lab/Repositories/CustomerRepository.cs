@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Week_2_ADAT_Lab.Models;
 
-namespace Week_2_ADAT_Lab
+namespace Week_2_ADAT_Lab.Repositories
 {
     public class CustomerRepository
     {
